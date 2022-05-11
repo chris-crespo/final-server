@@ -1,1 +1,1 @@
-web: racket - daw-racket/server
+web: racket -l daw-racket/server
