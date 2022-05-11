@@ -8,12 +8,32 @@
          web-server/servlet-dispatch
          web-server/web-server)
 
-;; file/sha1 is used to converted the result of sha256-bytes back into a string 
-(require db json file/sha1)
+(require db json)
+(require file/sha1) ; Used to converted the result of sha256-bytes back into a string
 
-(require "pg.rkt")
+(define (parse-url url)
+  (define (skip-postgres url) (substring url 11))
+  (define (parse-until char chars)
+    (define (pred curr) (not (char=? curr char)))
+    (define-values (lst rest) (splitf-at chars pred))
+    (values (list->string lst) (cdr rest)))
+  (let ([chars (string->list (skip-postgres url))])
+    (let*-values ([(user rest) (parse-until #\: chars)]
+                  [(password rest) (parse-until #\@ rest)]
+                  [(server rest) (parse-until #\: rest)]
+                  [(_ rest) (parse-until #\/ rest)])
+      (hasheq 'user user
+              'password password
+              'server server
+              'database (list->string rest)))))
 
-(define pgc (pg-connect (getenv "DATABASE_URL")))
+(define params (parse-url (getenv "DATABASE_URL")))
+(define pgc
+  (postgresql-connect #:user (hash-ref params 'user)
+                      #:database (hash-ref params 'database)
+                      #:server (hash-ref params 'server)
+                      #:ssl 'yes
+                      #:password (hash-ref params 'password)))
 
 (define ((available? column) value)
   (define query (format "select count(*) from app_user where ~a = $1" column))
@@ -113,7 +133,8 @@
   (dispatch-rules
     [("api" "auth") api/auth]
     [("api" "available") api/available]
-    [("api" "register") #:method "post" api/register]))
+    [("api" "register") #:method "post" api/register]
+    ))
 
 (define (not-found req)
   (response/jsexpr
@@ -124,10 +145,7 @@
     #:dispatch (sequencer:make
                  (dispatch/servlet app)
                  (dispatch/servlet not-found))
-    #:listen-ip #f
-    #:port (if (getenv "PORT")
-               (string->number (getenv "PORT"))
-               8000)))
+    #:port 8000))
 
 (with-handlers ([exn:break? (lambda (e) (stop))])
   (sync/enable-break never-evt))
