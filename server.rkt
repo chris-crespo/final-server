@@ -125,7 +125,9 @@
     #:dispatch (sequencer:make
                  (dispatch/servlet app)
                  (dispatch/servlet not-found))
-    #:port 8000))
+    #:port (if (getenv "PORT")
+               (string->number (getenv "PORT"))
+               8000)))
 
 (with-handlers ([exn:break? (lambda (e) (stop))])
   (sync/enable-break never-evt))
