@@ -14,6 +14,7 @@
 (require "pg.rkt")
 
 (define pgc (pg-connect (getenv "DATABASE_URL")))
+(println "connected to db")
 
 (define ((available? column) value)
   (define query (format "select count(*) from app_user where ~a = $1" column))
@@ -113,8 +114,7 @@
   (dispatch-rules
     [("api" "auth") api/auth]
     [("api" "available") api/available]
-    [("api" "register") #:method "post" api/register]
-    ))
+    [("api" "register") #:method "post" api/register]))
 
 (define (not-found req)
   (response/jsexpr
