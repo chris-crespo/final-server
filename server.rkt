@@ -34,22 +34,38 @@
                       #:ssl 'yes
                       #:password (hash-ref params 'password)))
 
-(define (available? column)
+;; Negates a predicate
+(define ((neg pred) . args)
+  (not (apply pred arg)))
+
+(define ((available? column) value)
   (define query (format "select count(*) from app_user where ~a = $1" column))
-  (lambda (value)
-    (zero? (query-value pgc query value))))
+  (zero? (query-value pgc query value)))
 
 (define username-available? (available? "username"))
 (define email-available? (available? "email"))
 
+(define username-exists? (not username-available?))
+(define email-exists? (not email-exists?))
+
 (define (api/available req)
+  ;; TODO: use request variables
   (response/jsexpr
     (hasheq 'username (username-available? "croissant")
             'email (email-available? "croissant"))))
 
+(define (api/register req)
+  ;; TODO: register user in database using request variables (json or url?)
+  ;; TODO: should we handle errors that could arise from inserting duplicated
+  ;; data? 
+  (response/jsexpr))
+
+
 (define-values (app reverse-uri)
   (dispatch-rules
-    [("api" "available") api/available]))
+    [("api" "available") api/available]
+    [("api" "register") api/register]
+    ))
 
 (define (not-found req)
   (response/jsexpr
