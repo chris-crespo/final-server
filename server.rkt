@@ -140,12 +140,18 @@
   (response/jsexpr
     (string->jsexpr "{\"error\": \"not found\"}")))
 
+(define port 
+  (if (getenv "PORT")
+      (string->number (getenv "PORT")) 
+      8000))
+
 (define stop
   (serve 
     #:dispatch (sequencer:make
                  (dispatch/servlet app)
                  (dispatch/servlet not-found))
-    #:port 8000))
+    #:listen-ip #f
+    #:port port))
 
 (with-handlers ([exn:break? (lambda (e) (stop))])
   (sync/enable-break never-evt))
