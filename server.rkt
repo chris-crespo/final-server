@@ -14,7 +14,6 @@
 (require "pg.rkt")
 
 (define pgc (pg-connect (getenv "DATABASE_URL")))
-(println "connected to db")
 
 (define ((available? column) value)
   (define query (format "select count(*) from app_user where ~a = $1" column))
@@ -125,6 +124,7 @@
     #:dispatch (sequencer:make
                  (dispatch/servlet app)
                  (dispatch/servlet not-found))
+    #:listen-ip #f
     #:port (if (getenv "PORT")
                (string->number (getenv "PORT"))
                8000)))
