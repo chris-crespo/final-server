@@ -1,3 +1,3 @@
 #lang info
 
-(define collection "daw-server")
+(define collection "daw-racket")
