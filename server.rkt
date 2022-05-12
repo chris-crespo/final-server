@@ -72,7 +72,27 @@
   (hasheq 'message message))
 
 ;;; Api routes
-(define (api/auth req)
+(define (api/user req)
+  (with-request-params req (user)
+    (define res
+      (query-maybe-row
+        pgc #<<SQL
+select username, email, concat(first_name, ' ', last_name), phone 
+from app_user 
+where username = $1 or email = $1
+SQL
+        user))
+        (println res)
+    (response/jsexpr
+      (match res
+        [(vector username email name phone)
+         (hasheq 'username username
+                 'email email
+                 'name name
+                 'phone phone)]
+        [_ (hasheq 'message "User not found")]))))
+
+(define (api/user/auth req)
   (with-request-params req (user password)
     (define user-password 
       (query-maybe-value 
@@ -86,7 +106,7 @@
           (hasheq 'user #t 'password (valid-password? user-password))
           (hasheq 'user #f 'pasword #f)))))
 
-(define (api/available req)
+(define (api/user/available req)
   ;; The response is a json object with information about
   ;; both the email and username availability. It always
   ;; returns both independent of the request parameters,
@@ -100,7 +120,7 @@
       (hasheq 'username (and username username?)
               'email (and email email?)))))
 
-(define (api/register req)
+(define (api/user/register req)
   (define (insert-user . args)
     (apply
       query pgc "insert into app_user values ($1, $2, $3, $4, $5, $6)"
@@ -119,10 +139,10 @@
 
 (define-values (app reverse-uri)
   (dispatch-rules
-    [("api" "auth") api/auth]
-    [("api" "available") api/available]
-    [("api" "register") #:method "post" api/register]
-    ))
+    [("api" "user") api/user]
+    [("api" "user" "auth") api/user/auth]
+    [("api" "user" "available") api/user/available]
+    [("api" "user" "register") #:method "post" api/user/register]))
 
 (define (not-found req)
   (response/jsexpr
