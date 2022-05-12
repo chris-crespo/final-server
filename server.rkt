@@ -51,11 +51,20 @@
 (define symbol->bytes (compose string->bytes/utf-8 symbol->string))
 
 ;; Cors wrapper, influenced by koyo/cors
+(define allow-origin-header (header #"Access-Control-Allow-Origin" #"*"))
+(define (make-options-headers)
+  (list allow-origin-header
+        (header #"Access-Control-Allow-Methods" #"POST OPTIONS")
+        (header #"Access-Control-Allow-Headers" #"*")))
 (define ((wrap-cors handler) req . args)
-  (define resp (apply handler req args))
-  (define headers (cons (header #"Access-Control-Allow-Origin" #"*")
-                        (response-headers resp)))
-  (struct-copy response resp [headers headers]))
+  (cond 
+    [(bytes=? (request-method req) #"OPTIONS")
+     (response/full 200 #"OK" (current-seconds) #f (make-options-headers) null)]
+    [else
+      (define resp (apply handler req args))
+      (define headers (cons (header #"Access-Control-Allow-Origin" #"*")
+                            (response-headers resp)))
+      (struct-copy response resp [headers headers])]))
 
 ;; Converts arg to sql-null if it's #f
 (define/match (->sql-null arg)
@@ -156,7 +165,7 @@ SQL
     [("api" "user") (wrap-cors api/user)]
     [("api" "user" "auth") (wrap-cors api/user/auth)]
     [("api" "user" "available") (wrap-cors api/user/available)]
-    [("api" "user" "register") #:method "post" (wrap-cors api/user/register)]))
+    [("api" "user" "register") #:method (or "post" "options") (wrap-cors api/user/register)]))
 
 (define (not-found req)
   (response/jsexpr
