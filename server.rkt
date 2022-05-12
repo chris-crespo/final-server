@@ -54,7 +54,7 @@
 (define allow-origin-header (header #"Access-Control-Allow-Origin" #"*"))
 (define (make-options-headers)
   (list allow-origin-header
-        (header #"Access-Control-Allow-Methods" #"POST OPTIONS")
+        (header #"Access-Control-Allow-Methods" #"POST, OPTIONS")
         (header #"Access-Control-Allow-Headers" #"*")))
 (define ((wrap-cors handler) req . args)
   (cond 
