@@ -3,12 +3,12 @@
 (require web-server/http
          web-server/http/bindings
          web-server/http/json
+         web-server/http/response-structs
          web-server/dispatch
          (prefix-in sequencer: web-server/dispatchers/dispatch-sequencer)
          web-server/servlet-dispatch
          web-server/web-server
          net/url
-         koyo/cors ; We let koyo handle all cors stuff
          db 
          json 
          file/sha1) ; Used to converted the result of sha256-bytes back into a string 
@@ -49,6 +49,13 @@
 
 ;;; Request parameter binding utilities
 (define symbol->bytes (compose string->bytes/utf-8 symbol->string))
+
+;; Cors wrapper, influenced by koyo/cors
+(define ((wrap-cors handler) req . args)
+  (define resp (apply handler req args))
+  (define headers (cons (header #"Access-Control-Allow-Origin" #"*")
+                        (response-headers resp)))
+  (struct-copy response resp [headers headers]))
 
 ;; Converts arg to sql-null if it's #f
 (define/match (->sql-null arg)
@@ -146,9 +153,9 @@ SQL
 
 (define-values (app reverse-uri)
   (dispatch-rules
-    [("api" "user") api/user]
+    [("api" "user") (wrap-cors api/user)]
     [("api" "user" "auth") (wrap-cors api/user/auth)]
-    [("api" "user" "available") api/user/available]
+    [("api" "user" "available") (wrap-cors api/user/available)]
     [("api" "user" "register") #:method "post" (wrap-cors api/user/register)]))
 
 (define (not-found req)
