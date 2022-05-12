@@ -102,9 +102,9 @@ SQL
       ;; TODO: not passing password as parameter returns sql-null
       (string=? password user-password))
     (response/jsexpr
-      (if password
+      (if user-password
           (hasheq 'user #t 'password (valid-password? user-password))
-          (hasheq 'user #f 'pasword #f))
+          (hasheq 'user #f 'password #f))
       #:headers (list (header #"Access-Control-Allow-Origin" #"*")))))
 
 (define (api/user/available req)
