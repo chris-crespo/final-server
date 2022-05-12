@@ -48,6 +48,10 @@
       expr0 . exprs)))
 
 ;;; Request parameter binding utilities
+(define (sql-date->string date)
+  (match-define (struct sql-date (year month day)) date)
+  (format "~a-~a-~a" year month day))
+
 (define symbol->bytes (compose string->bytes/utf-8 symbol->string))
 
 ;; Cors wrapper, influenced by koyo/cors
@@ -100,6 +104,24 @@
     (query-list pgc "select kind from camp_kind"))
   (response/jsexpr
     (hasheq 'kinds kinds)))
+
+(define (api/camps req)
+  (define (row->camp row) 
+    (match-define (vector _ camp kind description location start end min-age max-age)
+      row)
+    `(camp
+       (name ,camp)
+       (kind ,kind)
+       (description ,description)
+       (location ,location)
+       (start ,(sql-date->string start))
+       (end ,(sql-date->string end))
+       (min-age ,(number->string min-age))
+       (max-age ,(number->string max-age))))
+  (define camps 
+    (query-rows pgc "select * from camp"))
+  (response/xexpr
+    `(camps ,@(map row->camp camps))))
 
 (define (api/user req)
   (with-request-params req (user)
@@ -169,6 +191,7 @@ SQL
 (define-values (app reverse-uri)
   (dispatch-rules
     [("api" "camps" "kinds") (wrap-cors api/camps/kinds)]
+    [("api" "camps") (wrap-cors api/camps)]
     [("api" "user") (wrap-cors api/user)]
     [("api" "user" "auth") (wrap-cors api/user/auth)]
     [("api" "user" "available") (wrap-cors api/user/available)]
