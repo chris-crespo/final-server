@@ -105,6 +105,12 @@
   (response/jsexpr
     (hasheq 'kinds kinds)))
 
+(define (api/camps/langs req)
+  (define langs
+    (query-list pgc "select distinct lang from camp_lang"))
+  (response/jsexpr
+    (hasheq 'langs langs)))
+
 (define (api/camps req)
   (define (row->camp row) 
     (match-define (vector _ camp kind description location start end min-age max-age)
@@ -191,6 +197,7 @@ SQL
 (define-values (app reverse-uri)
   (dispatch-rules
     [("api" "camps" "kinds") (wrap-cors api/camps/kinds)]
+    [("api" "camps" "langs") (wrap-cors api/camps/langs)]
     [("api" "camps") (wrap-cors api/camps)]
     [("api" "user") (wrap-cors api/user)]
     [("api" "user" "auth") (wrap-cors api/user/auth)]
