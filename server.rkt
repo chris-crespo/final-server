@@ -95,6 +95,12 @@
   (hasheq 'message message))
 
 ;;; Api routes
+(define (api/camps/kinds req)
+  (define kinds 
+    (query-list pgc "select kind from camp_kind"))
+  (response/jsexpr
+    (hasheq 'kinds kinds)))
+
 (define (api/user req)
   (with-request-params req (user)
     (define res
@@ -162,6 +168,7 @@ SQL
 
 (define-values (app reverse-uri)
   (dispatch-rules
+    [("api" "camps" "kinds") (wrap-cors api/camps/kinds)]
     [("api" "user") (wrap-cors api/user)]
     [("api" "user" "auth") (wrap-cors api/user/auth)]
     [("api" "user" "available") (wrap-cors api/user/available)]
