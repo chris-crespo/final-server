@@ -104,7 +104,8 @@ SQL
     (response/jsexpr
       (if password
           (hasheq 'user #t 'password (valid-password? user-password))
-          (hasheq 'user #f 'pasword #f)))))
+          (hasheq 'user #f 'pasword #f))
+      #:headers (list (header #"Access-Control-Allow-Origin" #"*")))))
 
 (define (api/user/available req)
   ;; The response is a json object with information about
