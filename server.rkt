@@ -6,34 +6,22 @@
          web-server/dispatch
          (prefix-in sequencer: web-server/dispatchers/dispatch-sequencer)
          web-server/servlet-dispatch
-         web-server/web-server)
+         web-server/web-server
+         net/url
+         db 
+         json 
+         file/sha1) ; Used to converted the result of sha256-bytes back into a string 
 
-(require db json)
-(require file/sha1) ; Used to converted the result of sha256-bytes back into a string
-
-(define (parse-url url)
-  (define (skip-postgres url) (substring url 11))
-  (define (parse-until char chars)
-    (define (pred curr) (not (char=? curr char)))
-    (define-values (lst rest) (splitf-at chars pred))
-    (values (list->string lst) (cdr rest)))
-  (let ([chars (string->list (skip-postgres url))])
-    (let*-values ([(user rest) (parse-until #\: chars)]
-                  [(password rest) (parse-until #\@ rest)]
-                  [(server rest) (parse-until #\: rest)]
-                  [(_ rest) (parse-until #\/ rest)])
-      (hasheq 'user user
-              'password password
-              'server server
-              'database (list->string rest)))))
-
-(define params (parse-url (getenv "DATABASE_URL")))
+(define db-url (string->url (getenv "DATABASE_URL")))
+(match-define (url _ username/password host _ _ (list (path/param database _)) _ _)
+  db-url)
+(match-define (list username password) (string-split username/password ":"))
 (define pgc
-  (postgresql-connect #:user (hash-ref params 'user)
-                      #:database (hash-ref params 'database)
-                      #:server (hash-ref params 'server)
-                      #:ssl 'yes
-                      #:password (hash-ref params 'password)))
+  (postgresql-connect #:user username 
+                      #:password password  
+                      #:server host
+                      #:database database
+                      #:ssl 'yes))
 
 (define ((available? column) value)
   (define query (format "select count(*) from app_user where ~a = $1" column))
