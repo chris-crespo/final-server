@@ -65,6 +65,12 @@
   (define (bind key) (bind-id key bindings))
   (map bind keys))
 
+;; Hash string with sha256
+(define sha256 
+  (compose bytes->hex-string
+           sha256-bytes
+           string->bytes/utf-8))
+
 ;;; Error handlers
 (define (handlers/register e)
   (define info (exn:fail:sql-info e))
@@ -100,7 +106,7 @@ SQL
         user))
     (define (valid-password? user-password) 
       ;; TODO: not passing password as parameter returns sql-null
-      (string=? password user-password))
+      (string=? (sha256 password) user-password))
     (response/jsexpr
       (if user-password
           (hasheq 'user #t 'password (valid-password? user-password))
@@ -132,7 +138,7 @@ SQL
         (insert-user 
           username 
           email 
-          (bytes->hex-string (sha256-bytes (string->bytes/utf-8 password))) 
+          (sha256 password)
           first-name 
           last-name 
           phone) 
