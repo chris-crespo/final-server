@@ -8,6 +8,7 @@
          web-server/servlet-dispatch
          web-server/web-server
          net/url
+         koyo/cors ; We let koyo handle all cors stuff
          db 
          json 
          file/sha1) ; Used to converted the result of sha256-bytes back into a string 
@@ -110,8 +111,7 @@ SQL
     (response/jsexpr
       (if user-password
           (hasheq 'user #t 'password (valid-password? user-password))
-          (hasheq 'user #f 'password #f))
-      #:headers (list (header #"Access-Control-Allow-Origin" #"*")))))
+          (hasheq 'user #f 'password #f)))))
 
 (define (api/user/available req)
   ;; The response is a json object with information about
@@ -147,9 +147,9 @@ SQL
 (define-values (app reverse-uri)
   (dispatch-rules
     [("api" "user") api/user]
-    [("api" "user" "auth") api/user/auth]
+    [("api" "user" "auth") (wrap-cors api/user/auth)]
     [("api" "user" "available") api/user/available]
-    [("api" "user" "register") #:method "post" api/user/register]))
+    [("api" "user" "register") #:method "post" (wrap-cors api/user/register)]))
 
 (define (not-found req)
   (response/jsexpr
