@@ -10,6 +10,7 @@
          web-server/web-server
          net/url
          db 
+         db/util/postgresql
          json 
          file/sha1) ; Used to converted the result of sha256-bytes back into a string 
 
@@ -113,9 +114,11 @@
 
 (define (api/camps req)
   (define (row->camp row) 
-    (match-define (vector _ camp kind description location start end min-age max-age)
+    (match-define 
+      (vector id camp kind description location start end min-age max-age langs)
       row)
     `(camp
+       (id ,(number->string id))
        (name ,camp)
        (kind ,kind)
        (description ,description)
@@ -123,9 +126,17 @@
        (start ,(sql-date->string start))
        (end ,(sql-date->string end))
        (min-age ,(number->string min-age))
-       (max-age ,(number->string max-age))))
+       (max-age ,(number->string max-age))
+       (langs ,@(map (λ (lang) `(lang ,lang)) (pg-array->list langs)))))
+    
   (define camps 
-    (query-rows pgc "select * from camp"))
+    (query-rows pgc #<<SQL
+select camp.*, array_agg(camp_lang.lang) 
+from camp join camp_lang 
+on camp.id = camp_lang.camp
+group by camp.id
+SQL
+  ))
   (response/xexpr
     `(camps ,@(map row->camp camps))))
 
