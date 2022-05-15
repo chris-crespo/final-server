@@ -100,6 +100,23 @@
   (hasheq 'message message))
 
 ;;; Api routes
+(define (api/bookings req user-email)
+  (define bookings 
+    (query-rows pgc #<<SQL
+select k.dni as kid_dni, concat(k.first_name, ' ', k.last_name) as kid_name, camp_name
+from booking b join kid k
+on b.kid = k.dni
+join camp c
+on b.camp = c.id
+where user_email = $1
+SQL
+  user-email))
+  (define (row->booking row)
+    (make-hasheq (map cons '(kid-dni kid-name camp-name) row)))
+  (response/jsexpr
+    (hasheq 
+      'bookings (map row->booking bookings))))
+
 (define (api/camps/kinds req)
   (define kinds 
     (query-list pgc "select kind from camp_kind"))
@@ -207,6 +224,7 @@ SQL
 
 (define-values (app reverse-uri)
   (dispatch-rules
+    [("api" "bookings" (string-arg)) (wrap-cors api/bookings)]
     [("api" "camps" "kinds") (wrap-cors api/camps/kinds)]
     [("api" "camps" "langs") (wrap-cors api/camps/langs)]
     [("api" "camps") (wrap-cors api/camps)]
