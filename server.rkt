@@ -162,7 +162,7 @@ SQL
     (define res
       (query-maybe-row
         pgc #<<SQL
-select username, email, concat(first_name, ' ', last_name), phone 
+select username, email, concat(first_name, ' ', last_name) as fullname, phone 
 from app_user 
 where username = $1 or email = $1
 SQL
