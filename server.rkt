@@ -117,6 +117,21 @@ SQL
     (hasheq 
       'bookings (map row->booking bookings))))
 
+(define (api/camp req id)
+  (match-define (vector camp-id name kind description location start end min-age max-age)
+    (query-row pgc "select * from camp where id = $1" id))
+  (response/jsexpr
+    (hasheq
+      'id camp-id
+      'name name
+      'kind kind
+      'description description
+      'location location
+      'start (sql-date->string start)
+      'end (sql-date->string end)
+      'minAge min-age
+      'maxAge max-age)))
+
 (define (api/camps/kinds req)
   (define kinds 
     (query-list pgc "select kind from camp_kind"))
@@ -225,6 +240,7 @@ SQL
 (define-values (app reverse-uri)
   (dispatch-rules
     [("api" "bookings" (string-arg)) (wrap-cors api/bookings)]
+    [("api" "camp" (integer-arg)) (wrap-cors api/camp)]
     [("api" "camps" "kinds") (wrap-cors api/camps/kinds)]
     [("api" "camps" "langs") (wrap-cors api/camps/langs)]
     [("api" "camps") (wrap-cors api/camps)]
