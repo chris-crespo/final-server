@@ -143,8 +143,7 @@ SQL
       'end (sql-date->string end)
       'minAge min-age
       'maxAge max-age
-      'languages (pg-array->list langs)
-      )))
+      'languages (pg-array->list langs))))
 
 (define (api/camps/kinds req)
   (define kinds 
@@ -185,6 +184,17 @@ SQL
   ))
   (response/xexpr
     `(camps ,@(map row->camp camps))))
+
+(define (api/kid req user-email)
+  (define (insert-kid . args)
+    (apply
+      query pgc "insert into kid values ($1, $2, $3, $4, $5)"
+      (map ->sql-null args)))
+   (with-post-data req (dni firstName lastName age)
+    (response/jsexpr
+      (with-handlers ([exn:fail:sql? handlers/register])
+        (insert-kid dni firstName lastName age user-email) 
+        (hasheq 'success #t)))))
 
 (define (api/user req)
   (with-request-params req (user)
@@ -259,6 +269,7 @@ SQL
     [("api" "camps" "kinds") (wrap-cors api/camps/kinds)]
     [("api" "camps" "langs") (wrap-cors api/camps/langs)]
     [("api" "camps") (wrap-cors api/camps)]
+    [("api" "kid" (string-arg)) #:method (or "post" "options") (wrap-cors api/kid)]
     [("api" "user") (wrap-cors api/user)]
     [("api" "user" "auth") (wrap-cors api/user/auth)]
     [("api" "user" "available") (wrap-cors api/user/available)]
