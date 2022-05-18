@@ -103,8 +103,7 @@
 (define (api/activities req camp-id)
   (define activities
     (query-list pgc "select activity from camp_activity where camp = $1" camp-id))
-  (response/jsexpr
-    (hasheq 'activities activities)))
+  (response/jsexpr activities))
 
 (define (api/bookings req user-email)
   (define bookings 
