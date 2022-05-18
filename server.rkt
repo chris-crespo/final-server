@@ -100,6 +100,12 @@
   (hasheq 'message message))
 
 ;;; Api routes
+(define (api/activities req camp-id)
+  (define activities
+    (query-list pgc "select activity from camp_activity where camp = $1" camp-id))
+  (response/jsexpr
+    (hasheq 'activities activities)))
+
 (define (api/bookings req user-email)
   (define bookings 
     (query-rows pgc #<<SQL
@@ -248,6 +254,7 @@ SQL
 
 (define-values (app reverse-uri)
   (dispatch-rules
+    [("api" "activities" (integer-arg)) (wrap-cors api/activities)]
     [("api" "bookings" (string-arg)) (wrap-cors api/bookings)]
     [("api" "camp" (integer-arg)) (wrap-cors api/camp)]
     [("api" "camps" "kinds") (wrap-cors api/camps/kinds)]
