@@ -196,6 +196,19 @@ SQL
         (insert-kid dni firstName lastName age user-email) 
         (hasheq 'success #t)))))
 
+(define (api/kids req user-email)
+  (define (row->kid row) 
+    (match-define (vector dni first-name last-name age user)
+      row)
+    (hasheq 'dni dni
+            'first-name first-name
+            'last-name last-name
+            'age age
+            'user user))
+  (define kids
+    (query-rows pgc "select * from kid where app_user = $1" user-email))
+  (response/jsexpr (map row->kid kids)))
+
 (define (api/user req)
   (with-request-params req (user)
     (define res
@@ -270,6 +283,7 @@ SQL
     [("api" "camps" "langs") (wrap-cors api/camps/langs)]
     [("api" "camps") (wrap-cors api/camps)]
     [("api" "kid" (string-arg)) #:method (or "post" "options") (wrap-cors api/kid)]
+    [("api" "kids" (string-arg)) (wrap-cors api/kids)]
     [("api" "user") (wrap-cors api/user)]
     [("api" "user" "auth") (wrap-cors api/user/auth)]
     [("api" "user" "available") (wrap-cors api/user/available)]
