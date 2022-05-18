@@ -118,8 +118,15 @@ SQL
       'bookings (map row->booking bookings))))
 
 (define (api/camp req id)
-  (match-define (vector camp-id name kind description location start end min-age max-age)
-    (query-row pgc "select * from camp where id = $1" id))
+  (match-define (vector camp-id name kind description location start end min-age max-age langs)
+    (query-row pgc #<<SQL
+select camp.*, array_agg(camp_lang.lang) 
+from camp join camp_lang
+on camp.id = camp_lang.camp
+where id = $1
+group by camp.id
+SQL
+  id))
   (response/jsexpr
     (hasheq
       'id camp-id
@@ -130,7 +137,9 @@ SQL
       'start (sql-date->string start)
       'end (sql-date->string end)
       'minAge min-age
-      'maxAge max-age)))
+      'maxAge max-age
+      'languages (pg-array->list langs)
+      )))
 
 (define (api/camps/kinds req)
   (define kinds 
